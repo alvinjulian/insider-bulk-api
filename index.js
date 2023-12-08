@@ -4,11 +4,12 @@ const fs = require('fs');
 const express = require('express');
 const { default: axios } = require('axios');
 const app = express();
-const { MongoClient } = require('mongodb');
 const Bottleneck = require('bottleneck');
 
 // Update with your config settings.
 require('dotenv').config({path: '.env'});
+
+global.__basedir = __dirname;
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -28,12 +29,13 @@ const csvFilter = function (req, file, cb) {
 }
 
 function transformSingleIdentifier (data, callback) {
-    let identifier = data[identifier];
+    console.log(data)
+    let _identifier = data.identifier;
         
     let transformedData = {
         "identifiers": {
             "custom": {
-                "zenoti_user_code": identifier
+                "zenoti_user_code": _identifier
             }
         }
     }
@@ -59,8 +61,8 @@ app.post("/insider/bulk-delete", upload.single("file"), (req, res) => {
 
     // Declare limiter for bottlenecking activity
     const limiter = new Bottleneck({
-        maxConcurrent: 50,
-        minTime: 25
+        maxConcurrent: 10,
+        minTime: 100
     });
 
     let csvData = [];
@@ -87,8 +89,8 @@ app.post("/insider/bulk-delete", upload.single("file"), (req, res) => {
                                 method: 'POST',
                                 url: deleteUrl,
                                 headers: {
-                                    'X-PARTNER-NAME': partnerName,, 
-                                    'X-REQUEST-TOKEN': requestToken,, 
+                                    'X-PARTNER-NAME': partnerName,
+                                    'X-REQUEST-TOKEN': requestToken, 
                                     'Content-Type': 'application/json'
                                 },
                                 data: line
@@ -117,3 +119,7 @@ app.post("/insider/bulk-delete", upload.single("file"), (req, res) => {
         return res.status(500).send("Error occured while trying to upload file!");
     }
 });
+
+let server = app.listen(8000, () => {
+    console.log("Server is running on port 8000");
+})
